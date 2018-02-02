@@ -1,0 +1,112 @@
+#include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+
+// Variable Declaration
+const char* ssid = "DAY5WHOADAYS";
+const char* password = "TenZeros";
+const char* mqtt_server = "192.168.42.98";
+const char* topic_state_buzzer = "home-assistant/lock/buzzer/state";
+const char* state_on = "1";
+const char* state_off = "0";
+
+//Set channels
+int in1 = 16;
+int in2 = 14;
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  //Connect to Serial Port
+  Serial.begin(115200);
+
+  //Wait until we are connected to Serial Port
+  while (! Serial);
+  Serial.println();
+
+  //Connect to Wifi
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  //Wifi is connected
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  //Connect to MQTT Server
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+
+  //Set Pin Mode
+  pinMode(in1, OUTPUT);
+  pinMode(in2, INPUT);
+
+  //Set relay to start in off state
+  digitalWrite(in1, LOW);
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+
+  if (strcmp(topic, "home-assistant/lock/buzzer") == 0) {
+    //Do Buzzer Stuff
+    for (int i = 0; i < length; i++) {
+      char receivedChar = (char)payload[i];
+      Serial.print(receivedChar);
+
+      if (receivedChar == '0') {
+        digitalWrite(in1, LOW);
+        client.publish(topic_state_buzzer, state_off);
+      }
+      if (receivedChar == '1') {
+        digitalWrite(in1, HIGH);
+        client.publish(topic_state_buzzer, state_on);
+      }
+    }
+    Serial.println();
+  }
+}
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP8266Client")) {
+      Serial.println("connected");
+      // ... and subscribe to topic(s)
+      client.subscribe("home-assistant/lock/buzzer");
+
+      return;
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 2 seconds");
+      // Wait 2 seconds before retrying
+      delay(2000);
+    }
+  }
+}
+
+void loop() {
+  if (!client.connected()) {
+    //Serial.println("not connected");
+    //delay(2000);
+    reconnect();
+  }
+
+  client.loop();
+}
