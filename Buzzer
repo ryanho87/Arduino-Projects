@@ -1,4 +1,3 @@
-//#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
@@ -11,9 +10,12 @@ const char* state_on = "1";
 const char* state_off = "0";
 
 int in1 = 16;                 //Set signal channel for relay
-int inputPin = 2;             // choose the input pin (for PIR sensor)
 int pirState = LOW;           // we start, assuming no motion detected
-int val = 0;
+
+int inputPin_A = 12;
+int inputPin_B = 13;
+int val_A = 0;
+int val_B = 0;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -46,8 +48,10 @@ void setup() {
   client.setCallback(callback);
 
   pinMode(in1, OUTPUT);         // declare relay pin as output
-  pinMode(inputPin, INPUT);     // declare sensor pin as input
   digitalWrite(in1, LOW);       //Set relay to start in off state
+
+  pinMode(inputPin_A,INPUT);
+  pinMode(inputPin_B,INPUT);
 
 }
 
@@ -94,11 +98,13 @@ void loop() {
   if (!client.connected()) {
     reconnect();
     }
-    val = digitalRead(inputPin);                      // read input value
-    if (val == HIGH) {                                // check if the input is HIGH
+    val_A = digitalRead(inputPin_A);                      // read input value of A
+    val_B = digitalRead(inputPin_B);                      // read input value of B
+    if (val_A == HIGH || val_B == HIGH) {                 // check if the input is HIGH
       if (pirState == LOW) {
         // we have just turned on
         Serial.println("Motion detected!");
+        Serial.println(val_A +" " + val_B);
         client.publish(topic_state_motion, state_on);
         // We only want to print on the output change, not state
         pirState = HIGH;
