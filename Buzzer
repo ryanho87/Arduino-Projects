@@ -2,8 +2,8 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-const char* ssid = "DAY5WHOADAYS";
-const char* password = "TenZeros";
+const char* ssid = "";
+const char* password = "";
 const char* mqtt_server = "192.168.42.98";
 const char* topic_state_buzzer = "home-assistant/lock/buzzer/state";
 const char* topic_state_motion = "home-assistant/sensor/hallway_sensor_west";
